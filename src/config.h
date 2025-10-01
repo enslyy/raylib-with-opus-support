@@ -273,7 +273,7 @@
 //#define SUPPORT_FILEFORMAT_FLAC         1
 #define SUPPORT_FILEFORMAT_XM           1
 #define SUPPORT_FILEFORMAT_MOD          1
-
+#define SUPPORT_FILEFORMAT_OPUS         1
 // raudio: Configuration values
 //------------------------------------------------------------------------------------
 #define AUDIO_DEVICE_FORMAT    ma_format_f32    // Device output format (miniaudio: float-32bit)
