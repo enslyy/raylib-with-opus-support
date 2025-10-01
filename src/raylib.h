@@ -1682,6 +1682,7 @@ RLAPI void UnloadWaveSamples(float *samples);                         // Unload 
 RLAPI Music LoadMusicStream(const char *fileName);                    // Load music stream from file
 RLAPI Music LoadMusicStreamFromMemory(const char *fileType, const unsigned char *data, int dataSize); // Load music stream from data
 RLAPI bool IsMusicValid(Music music);                                 // Checks if a music stream is valid (context and buffers initialized)
+RLAPI int IsOpusValid(const char* fileName);                          // Checks if the given file contains a valid Opus stream
 RLAPI void UnloadMusicStream(Music music);                            // Unload music stream
 RLAPI void PlayMusicStream(Music music);                              // Start music playing
 RLAPI bool IsMusicStreamPlaying(Music music);                         // Check if music is playing
