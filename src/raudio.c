@@ -25,6 +25,7 @@
 *       #define SUPPORT_FILEFORMAT_FLAC
 *       #define SUPPORT_FILEFORMAT_XM
 *       #define SUPPORT_FILEFORMAT_MOD
+*       #define SUPPORT_FILEFORMAT_OPUS
 *           Selected desired fileformats to be supported for loading. Some of those formats are
 *           supported by default, to remove support, just comment unrequired #define in this module
 *
@@ -36,6 +37,7 @@
 *       dr_flac.h    - FLAC audio file loading (https://github.com/mackron/dr_libs)
 *       jar_xm.h     - XM module file loading
 *       jar_mod.h    - MOD audio file loading
+*       opusfile.h   - opus audio file loading
 *
 *   CONTRIBUTORS:
 *       David Reid (github: @mackron) (Nov. 2017):
@@ -226,7 +228,14 @@ typedef struct tagBITMAPINFOHEADER {
     #define DR_MP3_IMPLEMENTATION
     #include "external/dr_mp3.h"        // MP3 loading functions
 #endif
+#if defined(SUPPORT_FILEFORMAT_OPUS)
+    #define RLOPUS_MALLOC RL_MALLOC
+    #define RLOPUS_REALLOC RL_REALLOC
+    #define RLOPUS_FREE  RL_FREE
 
+    #define RL_OPUS_IMPLEMENTATION
+    #include "external/rl_opus.h"      //Opus loading functions
+#endif
 #if defined(SUPPORT_FILEFORMAT_QOA)
     #define QOA_MALLOC RL_MALLOC
     #define QOA_FREE RL_FREE
@@ -320,6 +329,7 @@ typedef enum {
 // Music context type
 // NOTE: Depends on data structure provided by the library
 // in charge of reading the different file types
+
 typedef enum {
     MUSIC_AUDIO_NONE = 0,   // No audio context loaded
     MUSIC_AUDIO_WAV,        // WAV audio context
@@ -327,9 +337,12 @@ typedef enum {
     MUSIC_AUDIO_FLAC,       // FLAC audio context
     MUSIC_AUDIO_MP3,        // MP3 audio context
     MUSIC_AUDIO_QOA,        // QOA audio context
+    MUSIC_AUDIO_OPUS,       // OPUS audio context (newly added)
+
     MUSIC_MODULE_XM,        // XM module audio context
     MUSIC_MODULE_MOD        // MOD module audio context
 } MusicContextType;
+
 
 // NOTE: Different logic is used when feeding data to the playback device
 // depending on whether data is streamed (Music vs Sound)
@@ -1410,6 +1423,29 @@ Music LoadMusicStream(const char *fileName)
         }
     }
 #endif
+
+#if defined(SUPPORT_FILEFORMAT_OPUS)
+    else if (IsFileExtension(fileName, ".opus"))
+    {
+        rl_opus *ctxOpus = (rl_opus *)RL_CALLOC(1, sizeof(rl_opus));
+        bool result = rl_opus_init_file(fileName, ctxOpus);
+
+        if (result)
+        {
+            music.ctxType = MUSIC_AUDIO_OPUS;
+            music.ctxData = ctxOpus;
+            music.stream = LoadAudioStream(ctxOpus->sampleRate, 32, ctxOpus->channels); 
+            music.frameCount = (unsigned int)rl_opus_get_total_pcm_frame_count(ctxOpus);
+            music.looping = true;
+            musicLoaded = true;
+        }
+        else
+        {
+            RL_FREE(ctxOpus);
+        }
+    }
+#endif
+
 #if defined(SUPPORT_FILEFORMAT_QOA)
     else if (IsFileExtension(fileName, ".qoa"))
     {
@@ -1504,6 +1540,10 @@ Music LoadMusicStream(const char *fileName)
         }
     }
 #endif
+
+
+
+
     else TRACELOG(LOG_WARNING, "STREAM: [%s] File format not supported", fileName);
 
     if (!musicLoaded)
@@ -1767,6 +1807,9 @@ void UnloadMusicStream(Music music)
 #if defined(SUPPORT_FILEFORMAT_QOA)
         else if (music.ctxType == MUSIC_AUDIO_QOA) qoaplay_close((qoaplay_desc *)music.ctxData);
 #endif
+#if defined(SUPPORT_FILEFORMAT_OPUS)
+        else if (music.ctxType == MUSIC_AUDIO_OPUS){ rl_opus_uninit((rl_opus *)music.ctxData); RL_FREE(music.ctxData); }
+#endif
 #if defined(SUPPORT_FILEFORMAT_FLAC)
         else if (music.ctxType == MUSIC_AUDIO_FLAC) { drflac_close((drflac *)music.ctxData); drflac_free((drflac *)music.ctxData, NULL); }
 #endif
@@ -1778,7 +1821,7 @@ void UnloadMusicStream(Music music)
 #endif
     }
 }
-
+//todo SeekMusicStream()
 // Start music playing (open stream) from beginning
 void PlayMusicStream(Music music)
 {
@@ -1990,6 +2033,20 @@ void UpdateMusicStream(Music music)
                     else qoaplay_rewind((qoaplay_desc *)music.ctxData);
                 }
                 */
+            } break;
+        #endif
+        #if defined(SUPPORT_FILEFORMAT_OPUS)
+            case MUSIC_AUDIO_OPUS:
+            {
+                while (true)
+                {
+                    int frameCountRead = (int)rl_opus_read_pcm_frames_f32((rl_opus *)music.ctxData, frameCountStillNeeded, (float *)((char *)AUDIO.System.pcmBuffer + frameCountReadTotal*frameSize));
+                    frameCountReadTotal += frameCountRead;
+                    frameCountStillNeeded -= frameCountRead;
+
+                    if (frameCountStillNeeded == 0) break;
+                    else op_raw_seek(((rl_opus *)music.ctxData)->file, 0); // rewind to start
+                }
             } break;
         #endif
         #if defined(SUPPORT_FILEFORMAT_FLAC)
