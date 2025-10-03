@@ -55,26 +55,48 @@ features
 
 basic example
 --------------
-This is a basic raylib example, it creates a window and draws the text `"Congrats! You created your first window!"` in the middle of the screen. Check this example [running live on web here](https://www.raylib.com/examples/core/loader.html?name=core_basic_window).
+This is a basic raylib example showcasing new opus-support ( 
 ```c
-#include "raylib.h"
+#include "../inc/raylib.h"
 
+#define OPUS_FILE "Enter your filename/path"
 int main(void)
 {
-    InitWindow(800, 450, "raylib [core] example - basic window");
+    InitWindow(800, 450, "Music Example");
+    InitAudioDevice();
+    IsOpusValid(OPUS_FILE);
+        
+    Music music = LoadMusicStream(OPUS_FILE);
+    PlayMusicStream(music);
+
+    bool musicPaused = false;
+    bool buttonClicked = false;
 
     while (!WindowShouldClose())
     {
+        if (IsKeyPressed(KEY_Q) || buttonClicked == true)
+        {
+            musicPaused = !musicPaused;
+        }
+
+        if (!musicPaused)
+        {
+            UpdateMusicStream(music);
+        }
+
         BeginDrawing();
-            ClearBackground(RAYWHITE);
-            DrawText("Congrats! You created your first window!", 190, 200, 20, LIGHTGRAY);
+        ClearBackground(RAYWHITE);
+        DrawText("Press Q to toggle music", 10, 10, 20, BLACK);
         EndDrawing();
     }
 
+    UnloadMusicStream(music);
+    CloseAudioDevice();
     CloseWindow();
 
     return 0;
 }
+
 ```
 
 build and installation
