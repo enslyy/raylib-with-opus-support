@@ -55,10 +55,16 @@ features
 
 basic example
 --------------
-This is a basic raylib example showcasing new opus-support ( 
+This is a basic raylib example showcasing opus-support
 ```c
-#include "../inc/raylib.h"
-
+/**********************************************************************************************
+*
+*    I' have never been good with words before and specially now  when i'm burnt off from working on a new subject like this but i figured i'd leave a small note before i take my time and come back with a full pr...
+*    Linking agianst libopusfile, libopus and libogg is required("for now") until i finish embeding the wraped code from libopus & libogg, for the moment rl_opus is only a wrapper for libopusfile objects with the future idea for it being     *    structured similiarly to dr_*  in a style homage that most raylib contributors are used to. rl_opus will become a lightweight, header-only wrapper around the opus audio decoder, matching raylib's expectations.”
+*    
+*   
+***********************************************************************************************/
+#include "raylib.h" // Opus support is enabled by default inside config.h when compiling this raylib fork, and it's required from you to link your client program against libopusfile, libopus, libogg
 #define OPUS_FILE "Enter your filename/path"
 int main(void)
 {
